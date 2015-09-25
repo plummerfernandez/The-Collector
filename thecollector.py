@@ -67,7 +67,7 @@ def getThingLinks(page):
 				
 	return links
 
-
+# Finds the url for main image of the Thing
 def getImage(page):
 	imgdivs = page.findAll("div", {"class":"thing-page-image featured"})
 	for imgdiv in imgdivs:
@@ -82,7 +82,7 @@ def getImage(page):
 				print "URL = " + str(url)
 				return url
 
-
+# Finds URLs of all the Things that the search term retrieved
 def getSTLs(page):
 	urls = []
 	thingdivs = page.findAll("div", {"class":"thing-file"})
@@ -96,15 +96,15 @@ def getSTLs(page):
 			urls.append([fullurl, filename])
 	return urls
 
+# Moves files from temp directory to Thing's exclusive directory
 def move(src,dst):
-        #src = "/path/to/your/source/directory"
-        #dst = "/path/to/your/destination/directory/"
         listOfFiles = os.listdir(src)
         for f in listOfFiles:
         		f = f.replace('(','').replace(')','') #TODO .. this doesnt rename actual file, just whats on the list
         		fullPath = src + "/" + f
         		os.system ("mv"+ " " + fullPath + " " + dst)
 
+# Selenium/ B4S powered search bot on loop
 def BrowseBot(browser):
 	visited = {}
 	pList = []
@@ -114,7 +114,7 @@ def BrowseBot(browser):
 		#sleep to make sure page loads, add random to make it act human.
 		time.sleep(random.uniform(1,2))
 		
-		if pList: #if there are products, browse them
+		if pList: #if there are Things, browse them, if not skip to 'else' routine
 			searchPage = pList.pop()
 			try:
 				browser.get(searchPage)
@@ -125,7 +125,7 @@ def BrowseBot(browser):
 			# give time for page to load
 			time.sleep(random.uniform(1.5,2))
 
-			#Make a directory for this thing
+			#Make a directory for this Thing
 			dirname = word + "_" + searchPage[-11:]
 			dirname = dirname[:-8]
 			print "directory name is = " + str(dirname)
@@ -133,7 +133,7 @@ def BrowseBot(browser):
 			os.mkdir(dirlocation)
 			print "[+] directory made for this thing" 
 
-			# get Image
+			# get Image of Thing
 			print "getting image"
 			page = BeautifulSoup(browser.page_source)
 			imgurl = getImage(page)
@@ -147,13 +147,11 @@ def BrowseBot(browser):
 			else:
 				print "No image found"
 
-			
-
 			#get Things
 			stlurls = getSTLs(page)
 
 			for url in stlurls:
-				#get STLs only
+				#get STLs only, in future will add other file formats
 				if url[1][-3:] == "stl":
 					browser.get(url[0]) #They are heading to the temp folder 
 					print "[+] downloaded file"
@@ -164,43 +162,22 @@ def BrowseBot(browser):
 			print "[+] ALL FILES downloaded"
 			# Move all the downloaded STLs into the new directory
 			tempdir =  os.getcwd()+"/downloads/temp"
-			#dirfiles = [ f for f in listdir(tempdir) if isfile(join(tempdir,f)) ]
-			#move to new folder
-
 			move(tempdir,dirlocation+"/")
-			# for fs in dirfiles:
-			# 	print fs
-			# 	for f in fs:
-			# 		print f
-   #  				fileDestination = dirlocation+"/"+f
-   #  				fileOrigin = tempdir+"/"+f
-   #  				print "fileDest = " + str(fileDestination)
-   #  				print "fileOrigin = " + str(fileOrigin)
-   #  				os.rename(fileOrigin, fileDestination)
-   #  				print "[+] file moved"
-   #  				time.sleep(2)
-
 
 		else: #otherwise find pages via a new random search
 			print "[+] doing new product search"
 			word = randWord()
-			print "word is = " + str(word)
-			# searchElement = browser.find_element_by_name("q")
-			# if searchElement is None:
-			# 	print "[-] !!!! no searchElement "
-			# else:
-			# 	print "[+] searchElement found"
-			# searchElementi = searchElement[0]
-			# searchWord = list(word)
-			# for i in searchWord:
-			# 	searchElementi.send_keys(i)
-			# 	time.sleep(random.uniform(0.5,1.4))
-			# time.sleep(random.uniform(0.5,1.4))
-			# searchElement.submit()
+			# Do new search
+			print "------------------------------------"
+			print "------- SEARCHING FOR THINGS -------"
+			print "------------------------------------"
+			print "The search term is = " + str(word)
+			print "------------------------------------"
 
 			browser.get("http://www.thingiverse.com/search?q="+word)
 			time.sleep(random.uniform(0.5,1.4))
 
+			# Beautiful soup helps find urls
 			page = BeautifulSoup(browser.page_source)
 			searchLinks = getThingLinks(page)
 			if searchLinks:
@@ -211,7 +188,9 @@ def BrowseBot(browser):
 				pList = list(set(pList))[:9]  # NUMBER FOR HOW MANY ITEMS TO RETRIEVE
 					
 
+
 def Main():
+	# You need to put your Thingiverse email and password into the settings.cfg file
 	config = ConfigParser.ConfigParser()
 	try:
 		config.read('settings.cfg')
@@ -219,15 +198,14 @@ def Main():
 	except:
 		print "[-] Could not read settings"
 
-
 	configEmail = config.get('thingiverse','email')
 	configPass = config.get('thingiverse','psswrd')
 
-	## Initiate browser
+	## Initiate browser with preferences to download without asking, otherwise human intervention is required
 	profile = webdriver.FirefoxProfile()
 	profile.set_preference('browser.download.folderList', 2)
 	profile.set_preference('browser.download.manager.showWhenStarting', False)
-	profile.set_preference('browser.download.dir', os.getcwd()+"/downloads/temp/") #+"downloads/"
+	profile.set_preference('browser.download.dir', os.getcwd()+"/downloads/temp/") #Make a "/downloads/temp/" folder where you keep your bot
 	profile.set_preference("browser.helperApps.alwaysAsk.force", False);
 	profile.set_preference('browser.helperApps.neverAsk.saveToDisk', ('application/sla,application/vnd.ms-pki.stl,application/x-navistyle,model/vrml')) 
 	# Add MIME types in line above for other 3D file formats http://www.sitepoint.com/web-foundations/mime-types-complete-list/
@@ -258,12 +236,12 @@ def Main():
 	passElement.submit()
 	btnElement = browser.find_element_by_id("sso_sign_in")
 	btnElement.click()
-	print "pressed sumbit!"
-	#time.sleep(random.uniform(1,2))
-
-	print "[+] Logged in to Thingiverse. Commencing decoy browsin'"
+	print "*click!*"
+	print "[+] Logged in to Thingiverse. Commencing automated browsin'"
 	
+	#Initiate search/download bot
 	BrowseBot(browser)
+	# Close browser when done
 	browser.close()
 
 if __name__ == '__main__':
