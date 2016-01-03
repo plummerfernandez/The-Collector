@@ -1,7 +1,7 @@
 """
-The Collector 
+The Collector
 
-Copyright (C) 2015,  Matthew Plummer-Fernandez 
+Copyright (C) 2015,  Matthew Plummer-Fernandez
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -10,11 +10,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 """
 
-print """	
+print """
 
 THE COLLECTOR
 (A bot that searches and collects things from Thingiverse)
-by Matthew Plummer-Fernandez, 2015 
+by Matthew Plummer-Fernandez, 2015
 
 ^_^ Available on Github:
 
@@ -27,6 +27,7 @@ from bs4 import BeautifulSoup
 import urllib, os
 from os import listdir
 from os.path import isfile, join
+import requests
 
 #Provides a random search word
 def randWord():
@@ -64,7 +65,7 @@ def getThingLinks(page):
 						fullurl = "http://www.thingiverse.com" + url + "/#files"
 						links.append(fullurl)
 						print fullurl
-				
+
 	return links
 
 # Finds the url for main image of the Thing
@@ -76,7 +77,7 @@ def getImage(page):
 			#print img
 			url = img.get('src')
 			if url is None:
-				ignore = 1 
+				ignore = 1
 				return "None"
 			else:
 				print "URL = " + str(url)
@@ -90,19 +91,24 @@ def getSTLs(page):
 		for link in thingdiv.find_all('a'):
 			#print link
 			url = link.get('href')
-			fullurl = "http://www.thingiverse.com" + url 
+			fullurl = "http://www.thingiverse.com" + url
 			print fullurl
 			filename = link.get('data-file-name')
 			urls.append([fullurl, filename])
 	return urls
 
+# Downloading large files using Requests
+# Code adapted from http://stackoverflow.com/a/16696317/3049530
+def download_STL(url, folder):
+	r = requests.get(url[0], stream=True)
+	with open(folder + "/" + url[1], 'w') as f:
+		for chunk in r.iter_content(chunk_size=1024):
+			if chunk: # filter out keep-alive new chunks
+				f.write(chunk)
+
 # Moves files from temp directory to Thing's exclusive directory
 def move(src,dst):
-        listOfFiles = os.listdir(src)
-        for f in listOfFiles:
-        		f = f.replace('(','').replace(')','') #TODO .. this doesnt rename actual file, just whats on the list
-        		fullPath = src + "/" + f
-        		os.system ("mv"+ " " + fullPath + " " + dst)
+	os.system ("mv" + " " + src + "/* " + dst)
 
 # Selenium/ B4S powered search bot on loop
 def BrowseBot(browser):
@@ -113,7 +119,7 @@ def BrowseBot(browser):
 	while True:
 		#sleep to make sure page loads, add random to make it act human.
 		time.sleep(random.uniform(1,2))
-		
+
 		if pList: #if there are Things, browse them, if not skip to 'else' routine
 			searchPage = pList.pop()
 			try:
@@ -131,7 +137,7 @@ def BrowseBot(browser):
 			print "directory name is = " + str(dirname)
 			dirlocation = os.getcwd()+"/downloads/"+dirname
 			os.mkdir(dirlocation)
-			print "[+] directory made for this thing" 
+			print "[+] directory made for this thing"
 
 			# get Image of Thing
 			print "getting image"
@@ -139,8 +145,8 @@ def BrowseBot(browser):
 			imgurl = getImage(page)
 			if imgurl != "None":
 				try:
-					urllib.urlretrieve(imgurl, "downloads/" + dirname + "/"+ str(word)+ "__"+ str(os.path.basename(imgurl)))
-					time.sleep(2) 
+					urllib.urlretrieve(imgurl, dirlocation + "/" + str(word)+ "__" + str(os.path.basename(imgurl)))
+					time.sleep(2)
 					print "[+] image downloaded"
 				except:
 					print "[-] failed to download image"
@@ -153,16 +159,17 @@ def BrowseBot(browser):
 			for url in stlurls:
 				#get STLs only, in future will add other file formats
 				if url[1][-3:] == "stl":
-					browser.get(url[0]) #They are heading to the temp folder 
+					# browser.get(url[0]) #They are heading to the temp folder
+					download_STL(url, dirlocation)
 					print "[+] downloaded file"
-			 		time.sleep(7) #time to download
+			 		#time.sleep(7) #time to download
 			 	else:
 			 		print "ignoring file = " + str(url[1])
 
 			print "[+] ALL FILES downloaded"
 			# Move all the downloaded STLs into the new directory
-			tempdir =  os.getcwd()+"/downloads/temp"
-			move(tempdir,dirlocation+"/")
+			# tempdir =  os.getcwd()+"/downloads/temp"
+			# move(tempdir,dirlocation+"/")
 
 		else: #otherwise find pages via a new random search
 			print "[+] doing new product search"
@@ -186,7 +193,7 @@ def BrowseBot(browser):
 
 				random.shuffle(pList)
 				pList = list(set(pList))[:9]  # NUMBER FOR HOW MANY ITEMS TO RETRIEVE
-					
+
 
 
 def Main():
@@ -207,7 +214,7 @@ def Main():
 	profile.set_preference('browser.download.manager.showWhenStarting', False)
 	profile.set_preference('browser.download.dir', os.getcwd()+"/downloads/temp/") #Make a "/downloads/temp/" folder where you keep your bot
 	profile.set_preference("browser.helperApps.alwaysAsk.force", False);
-	profile.set_preference('browser.helperApps.neverAsk.saveToDisk', ('application/sla,application/vnd.ms-pki.stl,application/x-navistyle,model/vrml')) 
+	profile.set_preference('browser.helperApps.neverAsk.saveToDisk', ('application/sla,application/vnd.ms-pki.stl,application/x-navistyle,model/vrml'))
 	# Add MIME types in line above for other 3D file formats http://www.sitepoint.com/web-foundations/mime-types-complete-list/
 
 	browser = webdriver.Firefox(profile)
@@ -238,7 +245,7 @@ def Main():
 	btnElement.click()
 	print "*click!*"
 	print "[+] Logged in to Thingiverse. Commencing automated browsin'"
-	
+
 	#Initiate search/download bot
 	BrowseBot(browser)
 	# Close browser when done
@@ -246,6 +253,3 @@ def Main():
 
 if __name__ == '__main__':
 	Main()
-
-
-
