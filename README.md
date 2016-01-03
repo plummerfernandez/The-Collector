@@ -4,10 +4,11 @@ A bot that searches and collects things from Thingiverse
 Built in Python 2.7
 
 Dependencies:
-Selenium
-Firefox
-BeautifulSoup4
-randomWords
+- Selenium
+- Firefox
+- BeautifulSoup4
+- randomWords
+- Requests
 
 Also it logs into a Thingiverse account so get one of those and
 put in your account email and psswrd into the settings file
