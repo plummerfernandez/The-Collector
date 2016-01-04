@@ -106,6 +106,22 @@ def download_STL(url, folder):
 			if chunk: # filter out keep-alive new chunks
 				f.write(chunk)
 
+def getLicense(page):
+	licensediv = page.find("div", {"class":"thing-license"})
+	return licensediv.get('title')
+
+def getObjectInfo(page):
+	thingpage = page.find("div", {"id": "thing-page"})
+	object_id = thingpage.get('data-thing-id')
+
+	thingheader = thingpage.find("div", {"class":"thing-header-data"})
+	object_title = thingheader.h1.string
+	author = thingheader.h2.a.string
+	time = thingheader.h2.time['datetime']
+	license = getLicense(page)
+	
+	print object_id, object_title, author, time, license
+
 # Moves files from temp directory to Thing's exclusive directory
 def move(src,dst):
 	os.system ("mv" + " " + src + "/* " + dst)
@@ -170,6 +186,7 @@ def BrowseBot(browser):
 			# Move all the downloaded STLs into the new directory
 			# tempdir =  os.getcwd()+"/downloads/temp"
 			# move(tempdir,dirlocation+"/")
+			getObjectInfo(page)
 
 		else: #otherwise find pages via a new random search
 			print "[+] doing new product search"
@@ -212,7 +229,7 @@ def Main():
 	profile = webdriver.FirefoxProfile()
 	profile.set_preference('browser.download.folderList', 2)
 	profile.set_preference('browser.download.manager.showWhenStarting', False)
-	profile.set_preference('browser.download.dir', os.getcwd()+"/downloads/temp/") #Make a "/downloads/temp/" folder where you keep your bot
+	# profile.set_preference('browser.download.dir', os.getcwd()+"/downloads/temp/") #Make a "/downloads/temp/" folder where you keep your bot
 	profile.set_preference("browser.helperApps.alwaysAsk.force", False);
 	profile.set_preference('browser.helperApps.neverAsk.saveToDisk', ('application/sla,application/vnd.ms-pki.stl,application/x-navistyle,model/vrml'))
 	# Add MIME types in line above for other 3D file formats http://www.sitepoint.com/web-foundations/mime-types-complete-list/
