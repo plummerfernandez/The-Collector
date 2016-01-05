@@ -1,3 +1,6 @@
 settings.cfg
 
 downloads/
+
+*.pyc
+*.db
