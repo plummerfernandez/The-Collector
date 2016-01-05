@@ -28,6 +28,7 @@ import urllib, os
 from os import listdir
 from os.path import isfile, join
 import requests
+import db
 
 #Provides a random search word
 def randWord():
@@ -106,21 +107,23 @@ def download_STL(url, folder):
 			if chunk: # filter out keep-alive new chunks
 				f.write(chunk)
 
+# Retrieve the license mention in the page
 def getLicense(page):
 	licensediv = page.find("div", {"class":"thing-license"})
 	return licensediv.get('title')
 
+# Retrieve most infos about the Thing
 def getObjectInfo(page):
 	thingpage = page.find("div", {"id": "thing-page"})
-	object_id = thingpage.get('data-thing-id')
+	object_id = int( thingpage.get('data-thing-id') )
 
 	thingheader = thingpage.find("div", {"class":"thing-header-data"})
 	object_title = thingheader.h1.string
 	author = thingheader.h2.a.string
 	time = thingheader.h2.time['datetime']
 	license = getLicense(page)
-	
-	print object_id, object_title, author, time, license
+
+	return object_title, author, object_id, time, license
 
 # Moves files from temp directory to Thing's exclusive directory
 def move(src,dst):
@@ -132,6 +135,10 @@ def BrowseBot(browser):
 	pList = []
 	count = 0
 	word = ""
+
+	# Connect to the database
+	things = db.Things()
+
 	while True:
 		#sleep to make sure page loads, add random to make it act human.
 		time.sleep(random.uniform(1,2))
@@ -186,7 +193,10 @@ def BrowseBot(browser):
 			# Move all the downloaded STLs into the new directory
 			# tempdir =  os.getcwd()+"/downloads/temp"
 			# move(tempdir,dirlocation+"/")
-			getObjectInfo(page)
+			info = getObjectInfo(page)
+			data = info + (word, dirname)
+			print data
+			things.insertThing( data )
 
 		else: #otherwise find pages via a new random search
 			print "[+] doing new product search"
@@ -237,6 +247,7 @@ def Main():
 	browser = webdriver.Firefox(profile)
 	browser.set_window_size(980,1820)
 	browser.set_window_position(650,10)
+	browser.implicitly_wait(3)
 	aurl = 'http://www.thingiverse.com'
 	browser.get(aurl)
 	page = BeautifulSoup(browser.page_source)
